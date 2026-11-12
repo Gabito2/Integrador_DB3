@@ -1,0 +1,174 @@
+========================================================================
+ PROYECTO INTEGRADOR - BASE DE DATOS III
+ Sistema de analisis academico y alerta temprana de desercion
+========================================================================
+
+1. DESCRIPCION GENERAL
+------------------------------------------------------------------------
+El proyecto implementa una arquitectura de datos por capas para analizar
+el rendimiento academico de estudiantes y detectar tempranamente el
+riesgo de desercion.
+
+Pipeline:
+  CSV crudo -> MongoDB (Bronze/Silver) -> PostgreSQL (Gold) -> Analisis
+
+2. OBJETIVOS
+------------------------------------------------------------------------
+2.1 Objetivo general
+    Disenar e implementar una solucion de integracion de datos que
+    permita transformar datos crudos de rendimiento estudiantil en
+    informacion accionable para la toma de decisiones academicas.
+
+2.2 Objetivos especificos
+    - Ingestar el dataset original en una capa de aterrizaje (Bronze).
+    - Diagnosticar y limpiar los datos (Silver).
+    - Modelar un Data Warehouse con esquema en estrella (Gold).
+    - Construir vistas analiticas y un tablero de indicadores.
+    - Entrenar un modelo predictivo de riesgo de abandono.
+
+3. ALCANCE
+------------------------------------------------------------------------
+Incluye:
+  - ETL de limpieza en MongoDB Atlas.
+  - ETL de carga y modelado dimensional en PostgreSQL.
+  - Vistas analiticas para consultas y visualizacion.
+  - Analisis descriptivo, comparativo y de patrones.
+  - Modelo de clasificacion (Random Forest) de riesgo alto.
+  - Exportacion de graficos para presentacion.
+
+No incluye:
+  - Interfaz web o aplicacion movil.
+  - Datos reales de produccion (el dataset es de ejemplo).
+  - Autenticacion de usuarios finales.
+
+4. ARQUITECTURA DE DATOS
+------------------------------------------------------------------------
++----------------+     +-----------------------------+
+|  CSV original  | --> |  MongoDB Atlas              |
++----------------+     |  Bronze: estudiantes_raw    |
+                       |  Silver: estudiantes_limpios|
+                       +--------------+--------------+
+                                      |
+                                      v
+                       +-----------------------------+
+                       |  PostgreSQL (dw_academico)  |
+                       |  Esquema estrella + vistas  |
+                       +--------------+--------------+
+                                      |
+                                      v
+                       +-----------------------------+
+                       |  Analisis y dashboard       |
+                       |  KPIs + Plotly + ML         |
+                       +-----------------------------+
+
+5. REQUERIMIENTOS FUNCIONALES
+------------------------------------------------------------------------
+RF-01  Cargar el CSV original sin transformaciones en la coleccion
+       Bronze (estudiantes_raw), conservando los valores como texto.
+RF-02  Diagnosticar la calidad de los datos: nulos, duplicados,
+       formatos invalidos, valores fuera de rango y variantes.
+RF-03  Limpiar y tipar los datos en la coleccion Silver
+       (estudiantes_limpios):
+         - Normalizar codigo_materia a formato XXX-NN.
+         - Convertir notas y edades escritas con palabras.
+         - Tratar "Ausente" como nota nula.
+         - Descartar valores imposibles (nota fuera de 0-10,
+           edad fuera de 16-100, asistencias negativas o mayores
+           a clases_totales).
+         - Unificar los tres formatos de fecha.
+         - Calcular pct_asistencia.
+RF-04  Crear indices en MongoDB sobre id_alumno, codigo_materia y
+       fecha_examen.
+RF-05  Crear la base dw_universidad y el esquema dw_academico en
+       PostgreSQL de forma automatica e idempotente.
+RF-06  Implementar el esquema en estrella:
+         - Dimensiones: carrera, estudiante, materia, periodo,
+           instancia y docente.
+         - Hechos: fact_rendimiento_academico.
+RF-07  Cargar dimensiones y hechos desde la capa Silver.
+RF-08  Clasificar cada evaluacion como Aprobado, Desaprobado o
+       Ausente (nota >= 6 aprueba).
+RF-09  Crear las vistas analiticas:
+         - vw_rendimiento_por_materia
+         - vw_evolucion_periodo_carrera
+         - vw_alerta_temprana_alumnos
+RF-10  Calcular un score y un semaforo de riesgo (Alto/Medio/Bajo)
+       por alumno.
+RF-11  Generar KPIs y visualizaciones interactivas:
+         - No aprobacion por materia.
+         - Evolucion del promedio por cuatrimestre y carrera.
+         - Mapa de calor por carrera y ano de cursada.
+         - Distribucion de riesgo por cohorte.
+         - Distribucion general del riesgo.
+RF-12  Entrenar un modelo de clasificacion para predecir riesgo
+       alto de abandono e informar la importancia de cada factor.
+RF-13  Exportar los graficos a archivos HTML para su presentacion.
+
+6. REQUERIMIENTOS NO FUNCIONALES
+------------------------------------------------------------------------
+RNF-01  El pipeline debe ser reproducible ejecutando los notebooks
+        en orden (01, 02, 03).
+RNF-02  Las credenciales deben leerse desde variables de entorno
+        (.env) y no versionarse en el repositorio.
+RNF-03  Las cargas a MongoDB y PostgreSQL deben ser idempotentes
+        (pueden re-ejecutarse sin duplicar datos).
+RNF-04  El modelo dimensional debe garantizar integridad referencial
+        y restricciones CHECK en las medidas.
+RNF-05  El codigo debe ejecutarse en Python 3.11 o superior.
+RNF-06  Los graficos deben ser legibles, consistentes y aptos para
+        presentacion.
+RNF-07  Los notebooks deben documentar cada etapa con texto
+        explicativo.
+
+7. MODELO DE DATOS (GOLD)
+------------------------------------------------------------------------
+Dimensiones:
+  - dim_carrera     (sk_carrera, nombre_carrera)
+  - dim_estudiante  (sk_estudiante, id_alumno, edad_actual,
+                     cohorte_ingreso, sk_carrera)
+  - dim_materia     (sk_materia, codigo_materia, nombre_materia,
+                     anio_cursada)
+  - dim_periodo     (sk_periodo, periodo_inscripcion, anio_lectivo,
+                     cuatrimestre)
+  - dim_instancia   (sk_instancia, tipo_instancia)
+  - dim_docente     (sk_docente, legajo_docente, nombre_docente)
+
+Tabla de hechos:
+  - fact_rendimiento_academico
+      (id_hecho, referencias a dimensiones, fecha_examen, nota,
+       asistencias, clases_totales, pct_asistencia,
+       estado_aprobacion, es_aprobado)
+
+8. ENTREGABLES
+------------------------------------------------------------------------
+  - Notebook 01: ETL Bronze/Silver en MongoDB.
+  - Notebook 02: ETL Gold y esquema estrella en PostgreSQL.
+  - Notebook 03: analisis, dashboard y modelo predictivo.
+  - README.md con instrucciones de instalacion y ejecucion.
+  - requirements.txt con dependencias.
+  - Graficos exportados en reports/.
+  - Documento de requerimientos (este archivo).
+
+9. CRITERIOS DE ACEPTACION
+------------------------------------------------------------------------
+CA-01  El pipeline procesa las 5.000 filas del dataset original.
+CA-02  La capa Silver no contiene notas fuera de 0-10, edades fuera
+       de 16-100, fechas invalidas ni asistencias inconsistentes.
+CA-03  Existen exactamente 6 materias canonicas.
+CA-04  El esquema estrella se crea sin errores y respeta las claves
+       foraneas.
+CA-05  Las tres vistas analiticas devuelven datos.
+CA-06  El notebook 03 se ejecuta de principio a fin sin errores.
+CA-07  Se generan los 7 graficos y se exportan correctamente.
+CA-08  El modelo reporta exactitud, precision, recall y F1.
+
+10. TECNOLOGIAS
+------------------------------------------------------------------------
+  - MongoDB Atlas (Data Lake)
+  - PostgreSQL 16 (Data Warehouse)
+  - Python 3.13
+  - pandas, SQLAlchemy, psycopg2, PyMongo
+  - Plotly
+  - scikit-learn
+  - JupyterLab
+========================================================================
