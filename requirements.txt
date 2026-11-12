@@ -1,0 +1,33 @@
+# ============================================================
+#  Proyecto Integrador - Base de Datos III
+#  Pipeline ETL: CSV -> MongoDB (Bronze/Silver) -> PostgreSQL (Gold)
+#  + Análisis y visualización
+# ============================================================
+
+# --- Manipulación de datos ---
+numpy==2.3.3
+pandas==2.3.2
+
+# --- Capa Data Lake (MongoDB Atlas) ---
+pymongo==4.19.0
+
+# --- Capa Data Warehouse (PostgreSQL) ---
+SQLAlchemy==2.0.44
+psycopg2-binary==2.9.11
+
+# --- Configuración / credenciales ---
+python-dotenv==1.2.1
+
+# --- Visualización y análisis ---
+matplotlib==3.10.6
+seaborn==0.13.2
+plotly==6.9.0
+
+# --- Machine Learning (notebook de análisis) ---
+scikit-learn==1.7.2
+
+# --- Entorno de notebooks ---
+jupyterlab==4.4.7
+notebook==7.4.5
+ipykernel==6.30.1
+nbformat==5.10.4
